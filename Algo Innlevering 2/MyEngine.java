@@ -1,10 +1,14 @@
 
 public class MyEngine implements SearchEngine {
 
+	
+	import java.util.hash
+	
+	
     private static final int DEFAULT_SIZE = 5000;
-
     private int size = 0;
     private int max;
+    private Hash
 
     public MyEngine(){ // DONE
         this(DEFAULT_SIZE);
