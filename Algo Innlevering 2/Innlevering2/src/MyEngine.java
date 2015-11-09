@@ -1,5 +1,7 @@
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.NoSuchElementException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
@@ -15,13 +17,19 @@ public class MyEngine implements SearchEngine {
 
     private int size = 0;
     private int max;
-    private WebPageReader reader;
-    private HashSet<String> indexSet;
-    private HashSet<String> blackListSet;
-    private HashMap<String, HashSet<String>> indexMap;
-    private Scanner whiteListScanner;
-    private Scanner blackListScanner;
-    private Iterator<String> blackListIterator;
+    private boolean searchChoice = false;
+    private static WebPageReader reader;
+    private static HashSet<String> indexSet;
+    private static HashSet<String> blackListSet;
+    private static HashMap<String, HashSet<String>> indexMap;
+    private static Scanner whiteListScanner;
+    private static Scanner blackListScanner;
+    private static Iterator<String> blackListIterator;
+    private static LinkedHashSet<String> linksToVisit;
+    private static HashSet<String> linksVisited;
+    private static Scanner userInput;
+    private static String choice;
+
 
     public MyEngine(){ // DONE
         this(DEFAULT_SIZE);
@@ -29,27 +37,65 @@ public class MyEngine implements SearchEngine {
 
     public MyEngine(int theMax) { // DONE
         setMax(theMax);
+        initialiseVariables();
+    }
+    
+    public void initialiseVariables () {
+    	indexSet = new HashSet<String>();
+    	blackListSet = new HashSet<String>();
+    	indexMap = new HashMap<String, HashSet<String>>();
+    	linksToVisit = new LinkedHashSet<String>();
+    	linksVisited = new HashSet<String>();
+
+    	
     }
 
     public void setMax(int theMax){ // DONE
         max = theMax;
     }
     
+
+    
     public boolean setBreadthFirst(){ // TODO
-        return false;
+        return true;
+       
     }
 
     public boolean setDepthFirst(){ // TODO
-        return false;
+        return true;
+    }
+    
+    public static String getSearchChoice() {
+    	
+        userInput = new Scanner(System.in);
+        System.out.println("Type in your prefered searching method, \"depth\" or \"breadth\":");
+        String inputString = userInput.next();
+        boolean continueAsking = true;
+        try {
+        	
+        	while (continueAsking) {
+            	if (inputString.equals("depth") || inputString.equals("breadth")) {
+            		continueAsking = false;
+            		userInput.close();
+            		return inputString;
+            	} else {
+            		System.out.println("You have not entered \"depth\" or \"breadth\", please try again:");
+            		inputString = userInput.next();
+            	}
+        	}
+        	userInput.close();
+        	return null;
+            
+        } catch (NoSuchElementException e) {
+            return null;
+        }
     }
     
     
 
     public void crawlFrom(String webAdress) { // TODO
         
-    	indexSet = new HashSet<String>();
-    	blackListSet = new HashSet<String>();
-    	indexMap = new HashMap<String, HashSet<String>>();
+
     	
 
     	try {
@@ -86,8 +132,8 @@ public class MyEngine implements SearchEngine {
         		if (whiteListWord.equals(blackListWord)) {
         			indexSet.remove(blackListWord);
         			break;
-        			}
         		}
+        	}
     	}
         
         for (String finalIndexWord : indexSet) {
@@ -98,6 +144,11 @@ public class MyEngine implements SearchEngine {
             	
     	reader = new WebPageReader(webAdress);
         reader.run();
+        
+        
+        
+        choice = getSearchChoice();
+        
         
         crawl(webAdress);
         
@@ -112,16 +163,51 @@ public class MyEngine implements SearchEngine {
     
     private void crawl (String webAdress) {
     	
-        for (String wordInIndex : indexMap.keySet()) {
-        	for (String wordOnWebsite : reader.getWords()) {
-        		if (wordInIndex.equalsIgnoreCase(wordOnWebsite)) {
-        			indexMap.get(wordInIndex).add(webAdress);
-        			reader.getWords().remove(wordOnWebsite);
-        			size++;
-        			break;
-        		}
-        	}
-        }
+    	while (size < max) {
+            for (String wordInIndex : indexMap.keySet()) {
+            	for (String wordOnWebsite : reader.getWords()) {
+            		if (wordInIndex.equalsIgnoreCase(wordOnWebsite)) {
+            			indexMap.get(wordInIndex).add(webAdress);
+            			reader.getWords().remove(wordOnWebsite);
+            			size++;
+            			break;
+            		}
+            	}
+            }
+            
+            if (choice.equals("depth")) {
+                LinkedHashSet<String> tempLinkStorage = new LinkedHashSet<String>();
+                        for (String previousLink : linksToVisit) {
+                        	tempLinkStorage.add(previousLink);
+                        }
+                        linksToVisit = new LinkedHashSet<String>();
+                        for (String linkOnPage : reader.getLinks()) {
+                    		linksToVisit.add(linkOnPage);
+                    	}
+                        for (String linkInTemp : tempLinkStorage) {
+                        	linksToVisit.add(linkInTemp);
+                        }
+                        tempLinkStorage = null;
+                        
+            } else {
+            	
+            }
+            
+           
+            linksVisited.add(webAdress);
+            
+            for (String element : linksVisited) {
+            	System.out.println(element);
+            }
+            
+            System.out.println(linksToVisit.iterator().next() + "HALLA");
+            crawl(linksToVisit.iterator().next());
+            
+
+    	}
+
+        
+
     }
 
     public String[] searchHits(String target){ // TODO
