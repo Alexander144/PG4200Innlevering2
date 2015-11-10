@@ -1,0 +1,16 @@
+
+import edu.princeton.cs.algs4.Queue;
+
+
+public class LinkManager {
+
+	import edu.princeton.cs.algs4.Queue;
+	import java.util.HashSet;
+	import java.util.Set;
+	import java.util.Stack;
+	
+	
+	public static void main(String[] args) {
+		
+	}
+}

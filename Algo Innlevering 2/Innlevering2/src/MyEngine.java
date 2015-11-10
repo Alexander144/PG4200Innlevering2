@@ -1,7 +1,5 @@
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.NoSuchElementException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
@@ -17,18 +15,15 @@ public class MyEngine implements SearchEngine {
 
     private int size = 0;
     private int max;
-    private boolean searchChoice = false;
-    private static WebPageReader reader;
-    private static HashSet<String> indexSet;
-    private static HashSet<String> blackListSet;
-    private static HashMap<String, HashSet<String>> indexMap;
-    private static Scanner whiteListScanner;
-    private static Scanner blackListScanner;
-    private static Iterator<String> blackListIterator;
-    private static LinkedHashSet<String> linksToVisit;
-    private static HashSet<String> linksVisited;
-    private static Scanner userInput;
-    private static String choice;
+    private boolean breadthFirst = false;
+    private WebPageReader reader;
+    private HashSet<String> indexSet;
+    private HashSet<String> blackListSet;
+    private HashMap<String, HashSet<String>> indexMap;
+    private Scanner whiteListScanner;
+    private Scanner blackListScanner;
+    private LinkManager linkManager;
+
 
 
     public MyEngine(){ // DONE
@@ -38,16 +33,15 @@ public class MyEngine implements SearchEngine {
     public MyEngine(int theMax) { // DONE
         setMax(theMax);
         initialiseVariables();
+        createIndex();
+        setBreadthFirst();
     }
     
     public void initialiseVariables () {
     	indexSet = new HashSet<String>();
     	blackListSet = new HashSet<String>();
     	indexMap = new HashMap<String, HashSet<String>>();
-    	linksToVisit = new LinkedHashSet<String>();
-    	linksVisited = new HashSet<String>();
-
-    	
+    	linkManager = new LinkManager(breadthFirst);
     }
 
     public void setMax(int theMax){ // DONE
@@ -57,47 +51,19 @@ public class MyEngine implements SearchEngine {
 
     
     public boolean setBreadthFirst(){ // TODO
-        return true;
+        breadthFirst = true;
+    	return true;
        
     }
 
     public boolean setDepthFirst(){ // TODO
-        return true;
-    }
-    
-    public static String getSearchChoice() {
-    	
-        userInput = new Scanner(System.in);
-        System.out.println("Type in your prefered searching method, \"depth\" or \"breadth\":");
-        String inputString = userInput.next();
-        boolean continueAsking = true;
-        try {
-        	
-        	while (continueAsking) {
-            	if (inputString.equals("depth") || inputString.equals("breadth")) {
-            		continueAsking = false;
-            		userInput.close();
-            		return inputString;
-            	} else {
-            		System.out.println("You have not entered \"depth\" or \"breadth\", please try again:");
-            		inputString = userInput.next();
-            	}
-        	}
-        	userInput.close();
-        	return null;
-            
-        } catch (NoSuchElementException e) {
-            return null;
-        }
+        breadthFirst = false;
+    	return true;
     }
     
     
-
-    public void crawlFrom(String webAdress) { // TODO
-        
-
+    public void createIndex() {
     	
-
     	try {
     		whiteListScanner = new Scanner(new File("words.txt"));
     	} catch (FileNotFoundException e) {
@@ -109,6 +75,7 @@ public class MyEngine implements SearchEngine {
     	}
     	
     	whiteListScanner.close();
+    	whiteListScanner = null;
     	
     	
     	try {
@@ -122,9 +89,9 @@ public class MyEngine implements SearchEngine {
     	}
     	
     	blackListScanner.close();
+    	blackListScanner = null;
     	
-        blackListIterator = blackListSet.iterator();
-        	
+        Iterator<String> blackListIterator = blackListSet.iterator();
         	
         while (blackListIterator.hasNext()) {
        	String blackListWord = blackListIterator.next();
@@ -136,86 +103,78 @@ public class MyEngine implements SearchEngine {
         	}
     	}
         
+        blackListIterator = null;
+        
+        blackListSet = null;
+        
         for (String finalIndexWord : indexSet) {
         	indexMap.put(finalIndexWord, new HashSet<String>());
         }
         
+        indexSet = null;
+        
+    }
 
-            	
+    public void crawlFrom(String webAdress) { // TODO
+    	
+    	linkManager.addLink(webAdress);
+    	
+    	
     	reader = new WebPageReader(webAdress);
         reader.run();
         
+        linkManager.addLinks(reader.getLinks());
         
         
-        choice = getSearchChoice();
-        
-        
-        crawl(webAdress);
-        
-        for(Object objname: indexMap.keySet()) {
-     	   System.out.print(objname + "\t");
-     	   System.out.println(indexMap.get(objname));
-     	 }
-        
-        
-    }
-    
-    
-    private void crawl (String webAdress) {
-    	
-    	while (size < max) {
-            for (String wordInIndex : indexMap.keySet()) {
-            	for (String wordOnWebsite : reader.getWords()) {
-            		if (wordInIndex.equalsIgnoreCase(wordOnWebsite)) {
-            			indexMap.get(wordInIndex).add(webAdress);
-            			reader.getWords().remove(wordOnWebsite);
-            			size++;
-            			break;
-            		}
-            	}
-            }
+
+       
+        for (String wordInIndex : indexMap.keySet()) {
+        	for (String wordOnWebsite : reader.getWords()) {
+        		if (wordInIndex.equalsIgnoreCase(wordOnWebsite)) {
+        			indexMap.get(wordInIndex).add(webAdress);
+        			reader.getWords().remove(wordOnWebsite);
+        			size++;
+        			break;
+        		}
+        	}
+        }
             
-            if (choice.equals("depth")) {
-                LinkedHashSet<String> tempLinkStorage = new LinkedHashSet<String>();
-                        for (String previousLink : linksToVisit) {
-                        	tempLinkStorage.add(previousLink);
-                        }
-                        linksToVisit = new LinkedHashSet<String>();
-                        for (String linkOnPage : reader.getLinks()) {
-                    		linksToVisit.add(linkOnPage);
-                    	}
-                        for (String linkInTemp : tempLinkStorage) {
-                        	linksToVisit.add(linkInTemp);
-                        }
-                        tempLinkStorage = null;
-                        
-            } else {
+            
+        reader = null;
+        
+        if (size <= max) {    
+            this.crawlFrom(linkManager.nextLink());
+        } else {
+        	linkManager = null;
+        	
+            Iterator<String>mapIterator = indexMap.keySet().iterator();
+            
+            while (mapIterator.hasNext()) {
+            	String wordToCheck = mapIterator.next();
+            	if (indexMap.get(wordToCheck).size() == 0) {
+            		mapIterator.remove();
+            	}
             	
             }
             
-           
-            linksVisited.add(webAdress);
-            
-            for (String element : linksVisited) {
-            	System.out.println(element);
-            }
-            
-            System.out.println(linksToVisit.iterator().next() + "HALLA");
-            crawl(linksToVisit.iterator().next());
-            
+            mapIterator = null;
 
-    	}
-
-        
-
+        }
     }
 
     public String[] searchHits(String target){ // TODO
-        String[] out = new String[reader.getWords().size()];
-        out[0] = reader.toString();
-        		
-        // reader.getLinks().toArray(new String[reader.getLinks().size()]);
-        return out;
+        
+    	String[] out = null;
+    	
+    	
+    	if (indexMap.containsKey(target)) {
+        	out = indexMap.get(target).toArray(new String[indexMap.get(target).size()]);
+        	return out;
+    	} else {
+    		return new String[0];
+    	}
+    	 
+    	
     }
 
     public int size(){ // DONE
@@ -228,7 +187,7 @@ public class MyEngine implements SearchEngine {
      */
     public static void main(String[] args){
         String AFTEN = "https://snl.no";
-        String TARGET = "alalalalalalalalallalalalall";
+        String TARGET = "headline";
 
         MyEngine engine = new MyEngine();
         System.out.print("Searching, start....");

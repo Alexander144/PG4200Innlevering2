@@ -13,16 +13,16 @@
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="false" key="wholeword"/>
-		<item value="aback" key="selection"/>
+		<item value="Iterator" key="selection"/>
 		<list key="findhistory">
+			<item value="iterator"/>
+			<item value="close"/>
+			<item value="whitelistscanner"/>
+			<item value="linkstovisit"/>
+			<item value="hasnext"/>
 			<item value="aback"/>
 			<item value="although"/>
 			<item value="able"/>
-			<item value="brighten"/>
-			<item value="ADD"/>
-			<item value="collectlinks"/>
-			<item value="set"/>
-			<item value="set&apos;"/>
 		</list>
 		<list key="replacehistory">
 		</list>

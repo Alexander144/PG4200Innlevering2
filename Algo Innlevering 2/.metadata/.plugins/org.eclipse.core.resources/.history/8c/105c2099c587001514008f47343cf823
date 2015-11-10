@@ -1,0 +1,31 @@
+
+import edu.princeton.cs.algs4.Queue;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Stack;
+
+public class LinkManager {
+
+
+	private static Queue<String> queue;
+	private static Stack<String> stack;
+	private static HashSet<String> links;
+	
+	public LinkManager() {
+		this(false);
+	}
+	
+	public LinkManager(boolean breadthFirst) {
+		
+		queue = new Queue<String>();
+		stack = new Stack<String>();
+		
+		if (breadthFirst) {
+			
+		}
+	}
+	
+	public static void main(String[] args) {
+		
+	}
+}
