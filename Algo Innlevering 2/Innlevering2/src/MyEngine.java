@@ -16,12 +16,8 @@ public class MyEngine implements SearchEngine {
     private int size = 0;
     private int max;
     private boolean breadthFirst = false;
-    private WebPageReader reader;
-    private HashSet<String> indexSet;
-    private HashSet<String> blackListSet;
+
     private HashMap<String, HashSet<String>> indexMap;
-    private Scanner whiteListScanner;
-    private Scanner blackListScanner;
     private LinkManager linkManager;
 
 
@@ -38,8 +34,6 @@ public class MyEngine implements SearchEngine {
     }
     
     public void initialiseVariables () {
-    	indexSet = new HashSet<String>();
-    	blackListSet = new HashSet<String>();
     	indexMap = new HashMap<String, HashSet<String>>();
     	linkManager = new LinkManager(breadthFirst);
     }
@@ -64,32 +58,37 @@ public class MyEngine implements SearchEngine {
     
     public void createIndex() {
     	
+    	
+    	HashSet<String> indexSet = new HashSet<String>();
+    	HashSet<String> blackListSet = new HashSet<String>();
+    	
     	try {
-    		whiteListScanner = new Scanner(new File("words.txt"));
+    		Scanner whiteListScanner = new Scanner(new File("words.txt"));
+        	while (whiteListScanner.hasNext()) {
+        		indexSet.add(whiteListScanner.next());
+        	}
+        	whiteListScanner.close();
+        	whiteListScanner = null;
+        	
     	} catch (FileNotFoundException e) {
     		System.out.println("Caught FileNotFoundException " + e.getMessage());
     	}
     	
-    	while (whiteListScanner.hasNext()) {
-    		indexSet.add(whiteListScanner.next());
-    	}
-    	
-    	whiteListScanner.close();
-    	whiteListScanner = null;
     	
     	
     	try {
-    		blackListScanner = new Scanner(new File("stopwords.txt"));
+    		Scanner blackListScanner = new Scanner(new File("stopwords.txt"));
+        	while (blackListScanner.hasNext()) {
+        		blackListSet.add(blackListScanner.next());
+        	}
+        	
+        	blackListScanner.close();
+        	blackListScanner = null;
+        	
     	} catch (FileNotFoundException e) {
     		System.out.println("Caught FileNotFoundException " + e.getMessage());
     	}
-    	
-    	while (blackListScanner.hasNext()) {
-    		blackListSet.add(blackListScanner.next());
-    	}
-    	
-    	blackListScanner.close();
-    	blackListScanner = null;
+    
     	
         Iterator<String> blackListIterator = blackListSet.iterator();
         	
@@ -120,15 +119,21 @@ public class MyEngine implements SearchEngine {
     	linkManager.addLink(webAdress);
     	
     	
-    	reader = new WebPageReader(webAdress);
+    	WebPageReader reader = new WebPageReader(webAdress);
         reader.run();
         
         linkManager.addLinks(reader.getLinks());
         
         
 
-       
-        for (String wordInIndex : indexMap.keySet()) {
+        /* for (String wordOnWebsite : reader.getWords()) {
+        	if (indexMap.keySet().contains(wordOnWebsite.toLowerCase())) {
+        		indexMap.get(wordOnWebsite).add(webAdress);
+        		size++;
+        	}
+        } */
+        
+     for (String wordInIndex : indexMap.keySet()) {
         	for (String wordOnWebsite : reader.getWords()) {
         		if (wordInIndex.equalsIgnoreCase(wordOnWebsite)) {
         			indexMap.get(wordInIndex).add(webAdress);
@@ -137,7 +142,7 @@ public class MyEngine implements SearchEngine {
         			break;
         		}
         	}
-        }
+        } 
             
             
         reader = null;
@@ -157,7 +162,7 @@ public class MyEngine implements SearchEngine {
             	
             }
             
-            mapIterator = null;
+            mapIterator = null;  
 
         }
     }

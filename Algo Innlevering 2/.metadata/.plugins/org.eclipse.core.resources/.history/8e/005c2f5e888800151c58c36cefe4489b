@@ -1,0 +1,233 @@
+import java.util.HashMap;
+import java.util.HashSet;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.util.Scanner;
+import java.util.Iterator;
+
+
+
+public class MyEngine implements SearchEngine {
+	
+
+
+    private static final int DEFAULT_SIZE = 5000;
+    private static final String UTF = "UTF-8";
+
+    private int size = 0;
+    private int max;
+    private boolean breadthFirst = false;
+    private WebPageReader reader;
+    private HashSet<String> indexSet;
+    private HashSet<String> blackListSet;
+    private HashMap<byte[], HashSet<byte[]>> indexMap;
+    private Scanner whiteListScanner;
+    private Scanner blackListScanner;
+    private LinkManager linkManager;
+
+
+
+    public MyEngine(){ // DONE
+        this(DEFAULT_SIZE);
+    }
+
+    public MyEngine(int theMax) { // DONE
+        setMax(theMax);
+        initialiseVariables();
+        createIndex();
+        setBreadthFirst();
+    }
+    
+    public void initialiseVariables () {
+    	indexSet = new HashSet<String>();
+    	blackListSet = new HashSet<String>();
+    	indexMap = new HashMap<byte[], HashSet<byte[]>>();
+    	linkManager = new LinkManager(breadthFirst);
+    }
+
+    public void setMax(int theMax){ // DONE
+        max = theMax;
+    }
+    
+
+    
+    public boolean setBreadthFirst(){ // TODO
+        breadthFirst = true;
+    	return true;
+       
+    }
+
+    public boolean setDepthFirst(){ // TODO
+        breadthFirst = false;
+    	return true;
+    }
+    
+    
+    public void createIndex() {
+    	
+    	try {
+    		whiteListScanner = new Scanner(new File("words.txt"));
+    	} catch (FileNotFoundException e) {
+    		System.out.println("Caught FileNotFoundException " + e.getMessage());
+    	}
+    	
+    	while (whiteListScanner.hasNext()) {
+    		indexSet.add(whiteListScanner.next());
+    	}
+    	
+    	whiteListScanner.close();
+    	whiteListScanner = null;
+    	
+    	
+    	try {
+    		blackListScanner = new Scanner(new File("stopwords.txt"));
+    	} catch (FileNotFoundException e) {
+    		System.out.println("Caught FileNotFoundException " + e.getMessage());
+    	}
+    	
+    	while (blackListScanner.hasNext()) {
+    		blackListSet.add(blackListScanner.next());
+    	}
+    	
+    	blackListScanner.close();
+    	blackListScanner = null;
+    	
+        Iterator<String> blackListIterator = blackListSet.iterator();
+        	
+        while (blackListIterator.hasNext()) {
+       	String blackListWord = blackListIterator.next();
+        	for (String whiteListWord : indexSet) {
+        		if (whiteListWord.equals(blackListWord)) {
+        			indexSet.remove(blackListWord);
+        			break;
+        		}
+        	}
+    	}
+        
+        blackListIterator = null;
+        
+        blackListSet = null;
+        
+        for (String finalIndexWord : indexSet) {
+        	byte[] finalIndexWordBytes;
+			try {
+				finalIndexWordBytes = finalIndexWord.getBytes(UTF);
+				indexMap.put(finalIndexWordBytes, new HashSet<byte[]>());
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	
+        }
+        
+        indexSet = null;
+        
+    }
+
+    public void crawlFrom(String webAdress) { // TODO
+    	
+    	linkManager.addLink(webAdress);
+    	
+    	
+    	reader = new WebPageReader(webAdress);
+        reader.run();
+        
+        linkManager.addLinks(reader.getLinks());
+        
+        
+
+       
+        for (byte[] wordInIndex : indexMap.keySet()) {
+        	for (String wordOnWebsite : reader.getWords()) {
+        		String temp;
+				try {
+					temp = new String(wordInIndex, UTF);
+	        		if (temp.equalsIgnoreCase(wordOnWebsite)) {
+	        			indexMap.get(wordInIndex).add(webAdress.getBytes(UTF));
+	        			reader.getWords().remove(wordOnWebsite);
+	        			size++;
+	        			break;
+	        		}
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        	}
+        }
+            
+            
+        reader = null;
+        
+        if (size <= max) {    
+            this.crawlFrom(linkManager.nextLink());
+        } else {
+        	linkManager = null;
+        	
+            Iterator<byte[]>mapIterator = indexMap.keySet().iterator();
+            
+            while (mapIterator.hasNext()) {
+            	byte[] wordToCheck = mapIterator.next();
+            	if (indexMap.get(wordToCheck).size() == 0) {
+            		mapIterator.remove();
+            	}
+            	
+            }
+            
+            mapIterator = null;
+
+        }
+    }
+
+    public String[] searchHits(String target){ // TODO
+        
+    	String[] out = null;
+    	
+    	try {
+			byte[] targetBytes =  target.getBytes(UTF);
+			
+	    	if (indexMap.containsKey(target)) {
+	        	out = indexMap.get(target).toArray(new String[indexMap.get(target).size()]);
+	        	return out;
+	    	} else {
+	    		return new String[0];
+	    	}
+	    	
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			
+			e.printStackTrace();
+			return new String[0];
+			
+		}
+    	
+    	
+
+    	 
+    	
+    }
+
+    public int size(){ // DONE
+        return size;
+    }
+
+    
+    /*
+     * Simple test code
+     */
+    public static void main(String[] args){
+        String AFTEN = "https://snl.no";
+        String TARGET = "headline";
+
+        MyEngine engine = new MyEngine();
+        System.out.print("Searching, start....");
+        engine.crawlFrom(AFTEN);
+        System.out.printf("finish. Size of index = %d%n",engine.size());
+
+        System.out.printf("Occurences of \"%s\":%n",TARGET);
+        String[] results = engine.searchHits(TARGET);
+        for (String s: results)
+            System.out.println(s);
+    }
+}
